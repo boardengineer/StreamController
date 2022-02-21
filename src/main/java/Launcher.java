@@ -166,6 +166,12 @@ public class Launcher {
                     } else if (command.equals("state")) {
                         sendMessage("Requesting State Update");
                         requestState();
+                    } else if (command.equals("advancegame")) {
+                        sendMessage("Requesting Game Advance");
+                        requestAdvanceBattle();
+                    } else if (command.equals("losebattle")) {
+                        sendMessage("Requesting Battle Loss");
+                        requestBattleLoss();
                     }
                 }
             }
@@ -189,7 +195,6 @@ public class Launcher {
 
             new Thread(() -> {
                 String s = "";
-                System.out.println("Standard error: ");
                 while (true) {
                     try {
                         if (!((s = stdError.readLine()) != null))
@@ -205,7 +210,6 @@ public class Launcher {
 
             new Thread(() -> {
                 String s = "";
-                System.out.println("Standard output: ");
                 while (true) {
                     try {
                         if (!((s = stdInput.readLine()) != null))
@@ -217,6 +221,7 @@ public class Launcher {
                 }
             }).start();
 
+            sendMessage("Client Launched, Waiting for Startup Signal...");
             waitForClientSuccessSignal();
             return process;
         } catch (Exception e) {
@@ -271,6 +276,7 @@ public class Launcher {
                 }
             }).start();
 
+            sendMessage("Server Launched, Waiting for Startup Signal...");
             waitForServerSuccessSignal();
             return process;
         } catch (Exception e) {
@@ -299,12 +305,10 @@ public class Launcher {
                         .getInputStream()));
                 gameOutputStream = new DataOutputStream(clientGameSocket.getOutputStream());
 
-                System.out.println("Waiting for game to start...");
-
                 String clientResponse = gameInputStream.readUTF();
 
-                System.out.println("client wrote " + clientResponse);
                 if (clientResponse.equals("SUCCESS")) {
+                    sendMessage("Client Startup Message Received");
                     clientLabel.setForeground(Color.green);
                     isClientActive = true;
                 }
@@ -340,6 +344,7 @@ public class Launcher {
 
                 System.out.println("server wrote " + serverResponse);
                 if (serverResponse.equals("SUCCESS")) {
+                    sendMessage("Server Startup Message Received");
                     serverLabel.setForeground(Color.green);
                     isServerActive = true;
                     requestBattleRestart();
@@ -390,6 +395,26 @@ public class Launcher {
         }).start();
     }
 
+    private static void requestAdvanceBattle() {
+        new Thread(() -> {
+            try {
+                gameOutputStream.writeUTF("advancegame");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
+    private static void requestBattleLoss() {
+        new Thread(() -> {
+            try {
+                gameOutputStream.writeUTF("losebattle");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
     private static void trackClientProcess() {
         new Thread(() -> {
             try {
@@ -426,8 +451,12 @@ public class Launcher {
                             shouldKillServerGame = false;
                             serverGameProcess.destroy();
                         }
-                        Thread.sleep(3_000);
                     } else {
+                        if (!isClientActive) {
+                            // Give the client some time to get ahead and snag the screen
+                            Thread.sleep(3_000);
+                        }
+
                         System.out.println("Server process not alive, restarting...");
                         serverGameProcess = startServerGame();
                         serverLabel.setForeground(Color.BLACK);
@@ -445,15 +474,14 @@ public class Launcher {
         new Thread(() -> {
             try {
                 while (true) {
-                    System.out.println("waiting for game to start");
                     if (isClientActive && isServerActive && !shouldKillServerGame && !shouldKillClientGame) {
-                        System.out.println("Server has started");
+                        sendMessage("Running Game Found Sending Enable in 10 seconds...");
                         Thread.sleep(10_000);
-                        System.out.println("Enabling Twitching controller");
                         sendEnable();
+                        sendMessage("Enable Sent, Requesting State update in 2 seconds...");
                         Thread.sleep(2_000);
-                        System.out.println("Requesting State");
                         requestState();
+                        sendMessage("Game Started");
                         return;
                     }
                     Thread.sleep(500);
