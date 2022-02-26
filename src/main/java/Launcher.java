@@ -48,6 +48,7 @@ public class Launcher {
 
     public static void main(String[] args) {
         Optional<TwitchConfig> twitchConfigOptional = TwitchConfig.readConfig();
+
         if (twitchConfigOptional.isPresent()) {
             TwitchConfig twitchConfig = twitchConfigOptional.get();
 
@@ -193,6 +194,11 @@ public class Launcher {
             BufferedReader stdError = new BufferedReader(new InputStreamReader(process
                     .getErrorStream()));
 
+            PrintWriter standardOut = new PrintWriter(new File(String
+                    .format("logs/client/stdout-%s.txt", System.currentTimeMillis())));
+            PrintWriter standardErr = new PrintWriter(new File(String
+                    .format("logs/client/stderr-%s.txt", System.currentTimeMillis())));
+
             new Thread(() -> {
                 String s = "";
                 while (true) {
@@ -202,7 +208,8 @@ public class Launcher {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-//                    System.out.println(s);
+                    standardErr.println(s);
+                    standardErr.flush();
                 }
             }).start();
 
@@ -217,7 +224,8 @@ public class Launcher {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-//                    System.out.println(s);
+                    standardOut.println(s);
+                    standardOut.flush();
                 }
             }).start();
 
@@ -248,6 +256,11 @@ public class Launcher {
             BufferedReader stdError = new BufferedReader(new InputStreamReader(process
                     .getErrorStream()));
 
+            PrintWriter standardOut = new PrintWriter(new File(String
+                    .format("logs/server/stdout-%s.txt", System.currentTimeMillis())));
+            PrintWriter standardErr = new PrintWriter(new File(String
+                    .format("logs/server/stderr-%s.txt", System.currentTimeMillis())));
+
             new Thread(() -> {
                 String s = "";
                 while (true) {
@@ -258,7 +271,7 @@ public class Launcher {
                         e.printStackTrace();
                     }
                 }
-//                System.out.println(s);
+                standardOut.println(s);
             }).start();
 
             // Read command standard output
