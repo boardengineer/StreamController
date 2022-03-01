@@ -44,13 +44,15 @@ public class Launcher {
     private static boolean isClientActive = false;
     private static boolean isServerActive = false;
 
+    private static TwitchConfig twitchConfig;
+
     private static Twirk twirk;
 
     public static void main(String[] args) {
         Optional<TwitchConfig> twitchConfigOptional = TwitchConfig.readConfig();
 
         if (twitchConfigOptional.isPresent()) {
-            TwitchConfig twitchConfig = twitchConfigOptional.get();
+            twitchConfig = twitchConfigOptional.get();
 
             String channel = ReflectionHacks
                     .getPrivate(twitchConfig, TwitchConfig.class, "channel");
@@ -75,6 +77,8 @@ public class Launcher {
                 e.printStackTrace();
             }
         }
+
+        trackTwirkConnection();
 
         JFrame f = new JFrame("Stream Control Panel");
         clientLabel = new JLabel("CLIENT");
@@ -451,6 +455,44 @@ public class Launcher {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
+        }).start();
+    }
+
+    private static void trackTwirkConnection() {
+        new Thread(() -> {
+            try {
+                while (true) {
+                    if (twirk.isConnected()) {
+                        Thread.sleep(3_000);
+                    } else {
+                        try {
+                            twirk.close();
+
+                            String channel = ReflectionHacks
+                                    .getPrivate(twitchConfig, TwitchConfig.class, "channel");
+                            String username = ReflectionHacks
+                                    .getPrivate(twitchConfig, TwitchConfig.class, "username");
+                            String token = ReflectionHacks
+                                    .getPrivate(twitchConfig, TwitchConfig.class, "token");
+
+                            twirk = new TwirkBuilder(channel, username, token).setSSL(true).build();
+
+                            twirk.addIrcListener(new TwirkListener() {
+                                @Override
+                                public void onPrivMsg(TwitchUser sender, TwitchMessage message) {
+                                    receiveMessage(sender, message.getContent());
+                                }
+                            });
+
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
         }).start();
     }
 
