@@ -274,8 +274,10 @@ public class Launcher {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
+
+                    standardErr.println(s);
+                    standardErr.flush();
                 }
-                standardErr.println(s);
             }).start();
 
             // Read command standard output
@@ -290,6 +292,7 @@ public class Launcher {
                         e.printStackTrace();
                     }
                     standardOut.println(s);
+                    standardOut.flush();
                 }
             }).start();
 
