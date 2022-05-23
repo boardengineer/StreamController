@@ -44,6 +44,8 @@ public class Launcher {
     private static boolean isClientActive = false;
     private static boolean isServerActive = false;
 
+    private static boolean startedStartThread = false;
+
     private static TwitchConfig twitchConfig;
 
     private static Twirk twirk;
@@ -469,7 +471,11 @@ public class Launcher {
                         Thread.sleep(3_000);
                     } else {
                         try {
-                            twirk.close();
+                            System.err.println("attempting to reconnect");
+                            try {
+                                twirk.close();
+                            } catch (NullPointerException e) {
+                            }
 
                             String channel = ReflectionHacks
                                     .getPrivate(twitchConfig, TwitchConfig.class, "channel");
@@ -529,10 +535,12 @@ public class Launcher {
     }
 
     private static void startGameAfterStart() {
+        startedStartThread = false;
         new Thread(() -> {
             try {
-                while (true) {
+                while (!startedStartThread) {
                     if (isClientActive && isServerActive && !shouldKillServerGame && !shouldKillClientGame) {
+                        startedStartThread = true;
                         sendMessage("Running Game Found Sending Enable in 10 seconds...");
                         Thread.sleep(10_000);
                         sendEnable();
