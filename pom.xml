@@ -10,8 +10,6 @@
     <version>1.0-SNAPSHOT</version>
 
     <name>streamcontroller</name>
-    <!-- FIXME change it to the project's website -->
-    <url>http://www.example.com</url>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -21,6 +19,42 @@
         <ModTheSpire.version>3.18.1</ModTheSpire.version>
         <BaseMod.version>5.32.0</BaseMod.version>
     </properties>
+
+
+    <build>
+
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <version>3.0.1</version>
+                    <executions>
+                        <execution>
+                            <id>copy-dependencies</id>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>copy-dependencies</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <configuration>
+                        <archive>
+                                <manifestEntries>
+                                    <Class-Path>dependency/slaythespire-11-30-2020.jar dependency/BaseMod-root-5.32.0.jar</Class-Path>
+                                    <Main-Class>Launcher</Main-Class>
+                                </manifestEntries>
+                        </archive>
+                    </configuration>
+                </plugin>
+            </plugins>
+
+    </build>
+
 
     <dependencies>
         <dependency>
@@ -44,42 +78,4 @@
             <systemPath>${basedir}/../_ModTheSpire/mods/BaseMod.jar</systemPath>
         </dependency>
     </dependencies>
-
-    <build>
-        <pluginManagement><!-- lock down plugins versions to avoid using Maven defaults (may be moved to parent pom) -->
-
-
-            <plugins>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-dependency-plugin</artifactId>
-                    <version>3.0.1</version>
-                    <executions>
-                        <execution>
-                            <id>copy-dependencies</id>
-                            <phase>package</phase>
-                            <goals>
-                                <goal>copy-dependencies</goal>
-                            </goals>
-                        </execution>
-                    </executions>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-jar-plugin</artifactId>
-                    <version>3.0.2</version>
-                    <configuration>
-                        <archive>
-                            <manifest>
-                                <addClasspath>true</addClasspath>
-                                <classpathPrefix>dependency/</classpathPrefix>
-                                <mainClass>Main</mainClass>
-                            </manifest>
-                        </archive>
-                    </configuration>
-                </plugin>
-            </plugins>
-
-        </pluginManagement>
-    </build>
 </project>
