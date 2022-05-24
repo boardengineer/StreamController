@@ -7,7 +7,6 @@ import com.gikk.twirk.types.users.TwitchUser;
 import de.robojumper.ststwitch.TwitchConfig;
 
 import javax.swing.*;
-import java.awt.*;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -82,39 +81,44 @@ public class Launcher {
 
         trackTwirkConnection();
 
-        JFrame f = new JFrame("Stream Control Panel");
+        createUI();
+    }
+
+    private static void createUI() {
+/*
+        JFrame frame = new JFrame("Stream Control Panel");
         clientLabel = new JLabel("CLIENT");
         clientLabel.setBounds(70, 70, 120, 50);
         serverLabel = new JLabel("SERVER");
         serverLabel.setBounds(150, 70, 120, 50);
-        f.add(clientLabel);
-        f.add(serverLabel);
+        frame.add(clientLabel);
+        frame.add(serverLabel);
 
         int curY = 120;
 
         JButton startGameButton = new JButton("Start Game");
         startGameButton.setBounds(70, curY, 115, 50);
-        f.add(startGameButton);
+        frame.add(startGameButton);
         curY += 75;
 
         JButton startServerButton = new JButton("Start Server");
         startServerButton.setBounds(70, curY, 115, 50);
-        f.add(startServerButton);
+        frame.add(startServerButton);
         curY += 75;
 
         JButton sendKillButton = new JButton("Send Kill");
         sendKillButton.setBounds(70, curY, 115, 50);
-        f.add(sendKillButton);
+        frame.add(sendKillButton);
         curY += 75;
 
         JButton requestStateButton = new JButton("Request State");
         requestStateButton.setBounds(70, curY, 115, 50);
-        f.add(requestStateButton);
+        frame.add(requestStateButton);
         curY += 75;
 
         JButton sendEnableButton = new JButton("Send Enable");
         sendEnableButton.setBounds(70, curY, 115, 50);
-        f.add(sendEnableButton);
+        frame.add(sendEnableButton);
         curY += 75;
 
         sendKillButton.addActionListener(e -> sendKill());
@@ -130,18 +134,11 @@ public class Launcher {
             waitForClientSuccessSignal();
         });
 
-//        startRunningGame();
+        frame.setSize(700, 700);
+        frame.setLayout(null);
+        frame.setVisible(true);
 
-//        startGameAfterStart();
-
-        f.setSize(700, 700);
-        f.setLayout(null);
-        f.setVisible(true);
-
-//        JavaProgressBar m = new JavaProgressBar();
-//        m.setVisible(true);
-//        m.iterate();
-
+ */
     }
 
     private static void receiveMessage(TwitchUser sender, String content) {
@@ -331,7 +328,6 @@ public class Launcher {
 
                 if (clientResponse.equals("SUCCESS")) {
                     sendMessage("Client Startup Message Received");
-                    clientLabel.setForeground(Color.green);
                     isClientActive = true;
                 }
             } catch (IOException e) {
@@ -367,9 +363,10 @@ public class Launcher {
                 System.out.println("server wrote " + serverResponse);
                 if (serverResponse.equals("SUCCESS")) {
                     sendMessage("Server Startup Message Received");
-                    serverLabel.setForeground(Color.green);
                     isServerActive = true;
-                    requestBattleRestart();
+                    if (isClientActive) {
+                        requestBattleRestart();
+                    }
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -449,7 +446,6 @@ public class Launcher {
                         }
                         Thread.sleep(3_000);
                     } else {
-                        clientLabel.setForeground(Color.BLACK);
                         clientGameProcess = startClientGame();
                         trackClientProcess();
 
@@ -523,7 +519,6 @@ public class Launcher {
 
                         System.out.println("Server process not alive, restarting...");
                         serverGameProcess = startServerGame();
-                        serverLabel.setForeground(Color.BLACK);
                         trackServerProcess();
                         return;
                     }
