@@ -13,6 +13,13 @@ import java.net.Socket;
 import java.util.Optional;
 
 public class Launcher {
+    private static boolean isModded = false;
+
+    private static final String CLIENT_PROFILE = "Client";
+    private static final String SERVER_PROFILE = "Server";
+    private static final String CLIENT_MODDED_PROFILE = "Client_modded";
+    private static final String SERVER_MODDED_PROFILE = "Server_modded";
+
     private static final int CLIENT_GAME_PORT = 5123;
     private static final int SERVER_GAME_PORT = 5124;
 
@@ -80,65 +87,6 @@ public class Launcher {
         }
 
         trackTwirkConnection();
-
-        createUI();
-    }
-
-    private static void createUI() {
-/*
-        JFrame frame = new JFrame("Stream Control Panel");
-        clientLabel = new JLabel("CLIENT");
-        clientLabel.setBounds(70, 70, 120, 50);
-        serverLabel = new JLabel("SERVER");
-        serverLabel.setBounds(150, 70, 120, 50);
-        frame.add(clientLabel);
-        frame.add(serverLabel);
-
-        int curY = 120;
-
-        JButton startGameButton = new JButton("Start Game");
-        startGameButton.setBounds(70, curY, 115, 50);
-        frame.add(startGameButton);
-        curY += 75;
-
-        JButton startServerButton = new JButton("Start Server");
-        startServerButton.setBounds(70, curY, 115, 50);
-        frame.add(startServerButton);
-        curY += 75;
-
-        JButton sendKillButton = new JButton("Send Kill");
-        sendKillButton.setBounds(70, curY, 115, 50);
-        frame.add(sendKillButton);
-        curY += 75;
-
-        JButton requestStateButton = new JButton("Request State");
-        requestStateButton.setBounds(70, curY, 115, 50);
-        frame.add(requestStateButton);
-        curY += 75;
-
-        JButton sendEnableButton = new JButton("Send Enable");
-        sendEnableButton.setBounds(70, curY, 115, 50);
-        frame.add(sendEnableButton);
-        curY += 75;
-
-        sendKillButton.addActionListener(e -> sendKill());
-        requestStateButton.addActionListener(e -> requestState());
-        startServerButton.addActionListener(e -> {
-            startServerGame();
-            waitForServerSuccessSignal();
-        });
-        sendEnableButton.addActionListener(e -> sendEnable());
-
-        startGameButton.addActionListener(e -> {
-            clientGameProcess = startClientGame();
-            waitForClientSuccessSignal();
-        });
-
-        frame.setSize(700, 700);
-        frame.setLayout(null);
-        frame.setVisible(true);
-
- */
     }
 
     private static void receiveMessage(TwitchUser sender, String content) {
@@ -176,6 +124,12 @@ public class Launcher {
                     } else if (command.equals("losebattle")) {
                         sendMessage("Requesting Battle Loss");
                         requestBattleLoss();
+                    } else if (command.equals("enablemods")) {
+                        sendMessage("enabling mods (on restart)");
+                        isModded = true;
+                    } else if (command.equals("disablemods")) {
+                        sendMessage("disabling mods (on restart)");
+                        isModded = true;
                     }
                 }
             }
@@ -184,8 +138,9 @@ public class Launcher {
 
     private static Process startClientGame() {
         try {
+            String clientProfileName = isModded ? CLIENT_MODDED_PROFILE : CLIENT_PROFILE;
             String[] command = {System
-                    .getProperty("java.home") + "/bin/java", "-jar", "-DisClient=true", "C:\\stuff\\_ModTheSpire\\ModTheSpire.jar", "--profile", "Client", "--skip-launcher", "--skip-intro"};
+                    .getProperty("java.home") + "/bin/java", "-jar", "-DisClient=true", "C:\\stuff\\_ModTheSpire\\ModTheSpire.jar", "--profile", clientProfileName, "--skip-launcher", "--skip-intro"};
             // ProcessBuilder will execute process named 'CMD' and will provide '/C' and 'dir' as command line arguments to 'CMD'
 
             ProcessBuilder pbuilder = new ProcessBuilder(command);
@@ -244,8 +199,9 @@ public class Launcher {
 
     private static Process startServerGame() {
         try {
+            String serverProfilename = isModded ? SERVER_MODDED_PROFILE : SERVER_PROFILE;
             String[] command = {System
-                    .getProperty("java.home") + "/bin/java", "-Xms1024m", "-Xmx2048m", "-jar", "-DisServer=true", "C:\\stuff\\_ModTheSpire\\ModTheSpire.jar", "--profile", "Server", "--skip-launcher", "--skip-intro"};
+                    .getProperty("java.home") + "/bin/java", "-Xms1024m", "-Xmx2048m", "-jar", "-DisServer=true", "C:\\stuff\\_ModTheSpire\\ModTheSpire.jar", "--profile", serverProfilename, "--skip-launcher", "--skip-intro"};
             // ProcessBuilder will execute process named 'CMD' and will provide '/C' and 'dir' as command line arguments to 'CMD'
 
             ProcessBuilder pbuilder = new ProcessBuilder(command);
