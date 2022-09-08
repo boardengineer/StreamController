@@ -129,7 +129,7 @@ public class Launcher {
                         isModded = true;
                     } else if (command.equals("disablemods")) {
                         sendMessage("disabling mods (on restart)");
-                        isModded = true;
+                        isModded = false;
                     }
                 }
             }
