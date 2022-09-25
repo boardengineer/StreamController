@@ -6,13 +6,14 @@ import com.gikk.twirk.types.twitchMessage.TwitchMessage;
 import com.gikk.twirk.types.users.TwitchUser;
 import de.robojumper.ststwitch.TwitchConfig;
 
-import javax.swing.*;
 import java.io.*;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Optional;
 
 public class Launcher {
+    private static final String HOST_IP = "127.0.0.1";
     private static boolean isModded = false;
 
     private static final String CLIENT_PROFILE = "Client";
@@ -22,6 +23,8 @@ public class Launcher {
 
     private static final int CLIENT_GAME_PORT = 5123;
     private static final int SERVER_GAME_PORT = 5124;
+
+    private static final long FIVE_MINUTES = 1_000 * 60 * 5;
 
     private static DataInputStream gameInputStream;
     private static DataOutputStream gameOutputStream;
@@ -36,14 +39,12 @@ public class Launcher {
     static Socket serverGameSocket;
 
     static ServerSocket clientGameServerSocket;
-    static ServerSocket serverGameServerSocket;
+    static Socket serverGameServerSocket;
 
     // If set to true, the game process will be killed and restarted
     static boolean shouldKillClientGame = false;
     static boolean shouldKillServerGame = false;
 
-    private static JLabel clientLabel;
-    private static JLabel serverLabel;
 
     private static final boolean shouldSendEnable = true;
 
@@ -280,12 +281,10 @@ public class Launcher {
                         .getInputStream()));
                 gameOutputStream = new DataOutputStream(clientGameSocket.getOutputStream());
 
-                String clientResponse = gameInputStream.readUTF();
+                gameInputStream.readUTF();
 
-                if (clientResponse.equals("SUCCESS")) {
-                    sendMessage("Client Startup Message Received");
-                    isClientActive = true;
-                }
+                sendMessage("Client Startup Message Received");
+                isClientActive = true;
             } catch (IOException e) {
 
             }
@@ -303,27 +302,45 @@ public class Launcher {
                     serverGameSocket.close();
                 }
 
+
                 System.out.println("Waiting for server to start... ");
-                serverGameServerSocket = new ServerSocket(SERVER_GAME_PORT);
 
-                serverGameSocket = serverGameServerSocket.accept();
+                boolean connected = false;
 
-                serverInputStream = new DataInputStream(new BufferedInputStream(serverGameSocket
-                        .getInputStream()));
-                serverOutputStream = new DataOutputStream(serverGameSocket.getOutputStream());
+                long waitTime = 0;
+                long startTime = System.currentTimeMillis();
 
-                System.out.println("Waiting for game to start...");
+                while (!connected && waitTime < FIVE_MINUTES) {
+                    try {
+                        waitTime = System.currentTimeMillis() - startTime;
 
-                String serverResponse = serverInputStream.readUTF();
+                        System.out
+                                .printf("Waiting for Server to Start %d / %d\n", waitTime, FIVE_MINUTES);
+                        serverGameServerSocket = new Socket();
+                        serverGameServerSocket
+                                .connect(new InetSocketAddress(HOST_IP, SERVER_GAME_PORT));
+                        connected = true;
+                        System.out.println("Server Connected");
 
-                System.out.println("server wrote " + serverResponse);
-                if (serverResponse.equals("SUCCESS")) {
-                    sendMessage("Server Startup Message Received");
-                    isServerActive = true;
-                    if (isClientActive) {
-                        requestBattleRestart();
+                        Thread.sleep(3_000);
+                    } catch (IOException | InterruptedException e) {
+//                    e.printStackTrace();
                     }
                 }
+
+                serverInputStream = new DataInputStream(new BufferedInputStream(serverGameServerSocket
+                        .getInputStream()));
+                serverOutputStream = new DataOutputStream(serverGameServerSocket.getOutputStream());
+
+                serverOutputStream.writeUTF("ping");
+                String serverResponse = serverInputStream.readUTF();
+                System.out.println("server wrote " + serverResponse);
+                sendMessage("Server Startup Message Received");
+                isServerActive = true;
+                if (isClientActive) {
+                    requestBattleRestart();
+                }
+
             } catch (IOException e) {
                 e.printStackTrace();
             }
