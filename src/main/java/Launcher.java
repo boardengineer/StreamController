@@ -319,26 +319,27 @@ public class Launcher {
                         serverGameServerSocket = new Socket();
                         serverGameServerSocket
                                 .connect(new InetSocketAddress(HOST_IP, SERVER_GAME_PORT));
-                        connected = true;
                         System.out.println("Server Connected");
+
+                        serverInputStream = new DataInputStream(new BufferedInputStream(serverGameServerSocket
+                                .getInputStream()));
+                        serverOutputStream = new DataOutputStream(serverGameServerSocket
+                                .getOutputStream());
+
+                        serverOutputStream.writeUTF("ping");
+                        String serverResponse = serverInputStream.readUTF();
+                        System.out.println("server wrote " + serverResponse);
+                        sendMessage("Server Startup Message Received");
+                        isServerActive = true;
+                        if (isClientActive) {
+                            requestBattleRestart();
+                        }
+                        connected = true;
 
                         Thread.sleep(3_000);
                     } catch (IOException | InterruptedException e) {
-//                    e.printStackTrace();
+                        e.printStackTrace();
                     }
-                }
-
-                serverInputStream = new DataInputStream(new BufferedInputStream(serverGameServerSocket
-                        .getInputStream()));
-                serverOutputStream = new DataOutputStream(serverGameServerSocket.getOutputStream());
-
-                serverOutputStream.writeUTF("ping");
-                String serverResponse = serverInputStream.readUTF();
-                System.out.println("server wrote " + serverResponse);
-                sendMessage("Server Startup Message Received");
-                isServerActive = true;
-                if (isClientActive) {
-                    requestBattleRestart();
                 }
 
             } catch (IOException e) {
