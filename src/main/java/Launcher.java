@@ -4,12 +4,15 @@ import com.gikk.twirk.TwirkBuilder;
 import com.gikk.twirk.events.TwirkListener;
 import com.gikk.twirk.types.twitchMessage.TwitchMessage;
 import com.gikk.twirk.types.users.TwitchUser;
+import com.google.gson.JsonObject;
 import de.robojumper.ststwitch.TwitchConfig;
 
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
+import java.nio.file.Files;
 import java.util.Optional;
 
 public class Launcher {
@@ -131,6 +134,40 @@ public class Launcher {
                     } else if (command.equals("disablemods")) {
                         sendMessage("disabling mods (on restart)");
                         isModded = false;
+                    } else if (command.equals("loserelic")) {
+                        if (contentTokens.length >= 3) {
+                            sendMessage("Requesting relic loss");
+                            requestLoseRelic(contentTokens[2]);
+                        }
+                    } else if (command.equals("addkeys")) {
+                        sendMessage("Requesting All Keys");
+                        requestAllKeys();
+                    } else if (command.equals("addrelic")) {
+                        if (contentTokens.length >= 3) {
+                            sendMessage("Requesting relic add");
+                            requestAddRelic(contentTokens[2]);
+                        }
+                    } else if (command.equals("loadlegacy")) {
+                        if (contentTokens.length >= 4) {
+                            //sendLoadRequest();
+                            sendMessage("Attempting Load Request");
+                            try {
+                                sendLoadRequest("C:/stuff/rundata/runs", contentTokens[2],
+                                        Integer.parseInt(contentTokens[3]));
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    } else if (command.equals("load")) {
+                        if (contentTokens.length >= 3) {
+                            sendMessage("Attempting Load Request");
+                            try {
+                                sendLoadRequest("C:/stuff/_ModTheSpire/startstates", contentTokens[2],
+                                        Integer.parseInt(contentTokens[3]));
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
                     }
                 }
             }
@@ -167,6 +204,7 @@ public class Launcher {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
+                    System.err.println(s);
                     standardErr.println(s);
                     standardErr.flush();
                 }
@@ -183,6 +221,7 @@ public class Launcher {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
+                    System.out.println(s);
                     standardOut.println(s);
                     standardOut.flush();
                 }
@@ -398,10 +437,69 @@ public class Launcher {
         }).start();
     }
 
+
+    private static void requestAllKeys() {
+        new Thread(() -> {
+            try {
+                gameOutputStream.writeUTF("addkeys");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
     private static void requestBattleLoss() {
         new Thread(() -> {
             try {
                 gameOutputStream.writeUTF("losebattle");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
+    private static void requestLoseRelic(String relicName) {
+        new Thread(() -> {
+            try {
+                gameOutputStream.writeUTF("loserelic " + relicName);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
+    private static void requestAddRelic(String relicName) {
+        new Thread(() -> {
+            try {
+                gameOutputStream.writeUTF("addrelic " + relicName);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
+    private static void sendLoadRequest(String root, String seed, int floorNum) {
+        new Thread(() -> {
+            try {
+                // C:/stuff/_ModTheSpire/startstates
+                // C:/stuff/rundata/runs
+                String floorDir = String.format(root + "/%s/%02d", seed, floorNum);
+
+                final String[] paths = new String[2];
+                Files.list(new File(floorDir).toPath()).forEach(path -> {
+                    if (path.toString().endsWith("autosave")) {
+                        // This is the save file
+                        paths[0] = path
+                                .toString(); // i.e. C:/stuff/rundata/runs/%s/%02d/IRONCLAD.autosave
+                        paths[1] = path.getFileName().toString(); // i.e. IRONCLAD.autosave
+                    }
+                });
+
+                if (paths[0] != null && paths[1] != null) {
+                    String playerClass = paths[1].split("\\.")[0];
+                    sendLoadRequest(paths[0], playerClass, 1, 0);
+                }
+
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -549,6 +647,42 @@ public class Launcher {
     private static void sendMessage(String message) {
         if (twirk != null && twirk.isConnected()) {
             twirk.channelMessage("[Admin BOT] " + message);
+        }
+    }
+
+    static void sendLoadRequest(String path, String playerClass, int start, int end) {
+        try {
+            System.err.println("should request loading " + start + " to " + end);
+            Socket socket = new Socket();
+            socket.connect(new InetSocketAddress(HOST_IP, 5200));
+
+            try {
+                DataOutputStream out = new DataOutputStream(socket.getOutputStream());
+
+                JsonObject requestJson = new JsonObject();
+
+                requestJson.addProperty("command", "load");
+
+                requestJson.addProperty("replay_floor_start", start);
+                requestJson.addProperty("replay_floor_end", end);
+
+                requestJson.addProperty("path", path);
+                requestJson.addProperty("playerClass", playerClass);
+
+                out.writeUTF(requestJson.toString());
+            } catch (SocketTimeoutException e) {
+                System.err.println("Failed on connect timeout");
+                socket.close();
+            }
+
+            DataInputStream in = new DataInputStream(new BufferedInputStream(socket
+                    .getInputStream()));
+
+            socket.setSoTimeout(5000);
+
+            String readLine = in.readUTF();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }
